@@ -1,0 +1,1018 @@
+{
+  "address": "6hKr9jCZtjfsjtdKZ7cBvMrQsXaHjewjwsC6uW1JYXwq",
+  "metadata": {
+    "name": "loot_king",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Loot King – King of the Hill betting game on Solana"
+  },
+  "instructions": [
+    {
+      "name": "accept_authority",
+      "discriminator": [
+        107,
+        86,
+        198,
+        91,
+        33,
+        12,
+        107,
+        160
+      ],
+      "accounts": [
+        {
+          "name": "game_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  97,
+                  109,
+                  101,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "new_authority",
+          "signer": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "claim_prize",
+      "discriminator": [
+        157,
+        233,
+        139,
+        121,
+        246,
+        62,
+        234,
+        235
+      ],
+      "accounts": [
+        {
+          "name": "game_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  97,
+                  109,
+                  101,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "winner",
+          "writable": true
+        },
+        {
+          "name": "commission_wallet",
+          "writable": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "initialize",
+      "discriminator": [
+        175,
+        175,
+        109,
+        31,
+        13,
+        152,
+        155,
+        237
+      ],
+      "accounts": [
+        {
+          "name": "game_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  97,
+                  109,
+                  101,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "commission_wallet",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "place_bet",
+      "discriminator": [
+        222,
+        62,
+        67,
+        220,
+        63,
+        166,
+        126,
+        33
+      ],
+      "accounts": [
+        {
+          "name": "game_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  97,
+                  109,
+                  101,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "player",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "pending_winner_account",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "commission_wallet_account",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "is_fast",
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "transfer_authority",
+      "discriminator": [
+        48,
+        169,
+        76,
+        72,
+        229,
+        180,
+        55,
+        161
+      ],
+      "accounts": [
+        {
+          "name": "game_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  97,
+                  109,
+                  101,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "new_authority",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "update_commission",
+      "discriminator": [
+        2,
+        202,
+        72,
+        156,
+        19,
+        253,
+        91,
+        174
+      ],
+      "accounts": [
+        {
+          "name": "game_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  97,
+                  109,
+                  101,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "new_commission_bps",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "update_commission_wallet",
+      "discriminator": [
+        33,
+        233,
+        7,
+        76,
+        94,
+        210,
+        20,
+        9
+      ],
+      "accounts": [
+        {
+          "name": "game_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  97,
+                  109,
+                  101,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "new_commission_wallet",
+          "type": "pubkey"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "GameState",
+      "discriminator": [
+        144,
+        94,
+        208,
+        172,
+        248,
+        99,
+        134,
+        120
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "AuthorityTransferProposed",
+      "discriminator": [
+        103,
+        244,
+        27,
+        116,
+        177,
+        4,
+        100,
+        119
+      ]
+    },
+    {
+      "name": "AuthorityTransferred",
+      "discriminator": [
+        245,
+        109,
+        179,
+        54,
+        135,
+        92,
+        22,
+        64
+      ]
+    },
+    {
+      "name": "BetPlaced",
+      "discriminator": [
+        88,
+        88,
+        145,
+        226,
+        126,
+        206,
+        32,
+        0
+      ]
+    },
+    {
+      "name": "CommissionUpdated",
+      "discriminator": [
+        107,
+        183,
+        135,
+        132,
+        231,
+        24,
+        226,
+        183
+      ]
+    },
+    {
+      "name": "CommissionWalletUpdated",
+      "discriminator": [
+        110,
+        182,
+        197,
+        188,
+        157,
+        223,
+        108,
+        143
+      ]
+    },
+    {
+      "name": "PendingPrizePaid",
+      "discriminator": [
+        160,
+        215,
+        21,
+        111,
+        253,
+        179,
+        230,
+        156
+      ]
+    },
+    {
+      "name": "RoundEnded",
+      "discriminator": [
+        70,
+        113,
+        6,
+        162,
+        176,
+        78,
+        201,
+        19
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "RoundEnded",
+      "msg": "Round has already ended, claim the prize first"
+    },
+    {
+      "code": 6001,
+      "name": "NoActiveRound",
+      "msg": "No active round"
+    },
+    {
+      "code": 6002,
+      "name": "RoundStillActive",
+      "msg": "Round is still active, wait for the deadline"
+    },
+    {
+      "code": 6003,
+      "name": "LeaderCannotBetAgain",
+      "msg": "Current leader cannot bet again"
+    },
+    {
+      "code": 6004,
+      "name": "FastBetNotAvailableForFirstBet",
+      "msg": "Fast bet is not available for the first bet"
+    },
+    {
+      "code": 6005,
+      "name": "Overflow",
+      "msg": "Arithmetic overflow"
+    },
+    {
+      "code": 6006,
+      "name": "InvalidWinner",
+      "msg": "Invalid winner account"
+    },
+    {
+      "code": 6007,
+      "name": "InvalidCommissionWallet",
+      "msg": "Invalid commission wallet account"
+    },
+    {
+      "code": 6008,
+      "name": "MissingPendingWinnerAccount",
+      "msg": "Missing pending winner account"
+    },
+    {
+      "code": 6009,
+      "name": "MissingCommissionWalletAccount",
+      "msg": "Missing commission wallet account"
+    },
+    {
+      "code": 6010,
+      "name": "CommissionTooHigh",
+      "msg": "Commission exceeds maximum of 10%"
+    },
+    {
+      "code": 6011,
+      "name": "Unauthorized",
+      "msg": "Only the authority can perform this action"
+    },
+    {
+      "code": 6012,
+      "name": "InvalidCommissionWalletAddress",
+      "msg": "Commission wallet cannot be the default (zero) address"
+    },
+    {
+      "code": 6013,
+      "name": "NoPendingAuthorityTransfer",
+      "msg": "No pending authority transfer"
+    },
+    {
+      "code": 6014,
+      "name": "InvalidPendingAuthority",
+      "msg": "Signer does not match pending authority"
+    }
+  ],
+  "types": [
+    {
+      "name": "AuthorityTransferProposed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "current_authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "pending_authority",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "AuthorityTransferred",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "old_authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "new_authority",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "BetPlaced",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "round_number",
+            "type": "u64"
+          },
+          {
+            "name": "player",
+            "type": "pubkey"
+          },
+          {
+            "name": "bet_count",
+            "type": "u32"
+          },
+          {
+            "name": "deadline",
+            "type": "i64"
+          },
+          {
+            "name": "bank",
+            "type": "u64"
+          },
+          {
+            "name": "is_fast",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "BetRecord",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "wallet",
+            "docs": [
+              "Bettor wallet address"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "docs": [
+              "Bet amount (in lamports)"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "round_number",
+            "docs": [
+              "Round number"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "docs": [
+              "Timestamp when bet was placed"
+            ],
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CommissionUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "old_commission_bps",
+            "type": "u64"
+          },
+          {
+            "name": "new_commission_bps",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CommissionWalletUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "old_wallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "new_wallet",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "GameState",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "docs": [
+              "Program authority (deployer)"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "pending_authority",
+            "docs": [
+              "Proposed new authority (for two-step transfer)"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "commission_wallet",
+            "docs": [
+              "Wallet that receives commission"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "commission_bps",
+            "docs": [
+              "Commission in basis points (max 1000 = 10%)"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "round_number",
+            "docs": [
+              "Current round number (starts at 1)"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "leader",
+            "docs": [
+              "Current leader's pubkey"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "bank",
+            "docs": [
+              "Total bank for current round (in lamports)"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "bet_count",
+            "docs": [
+              "Number of bets in current round"
+            ],
+            "type": "u32"
+          },
+          {
+            "name": "round_commission_bps",
+            "docs": [
+              "Commission rate locked at round start (basis points)"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "deadline",
+            "docs": [
+              "Deadline timestamp (unix seconds)"
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "is_active",
+            "docs": [
+              "Whether a round is currently active"
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "pending_winner",
+            "docs": [
+              "Winner of the previous unclaimed round"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "pending_prize",
+            "docs": [
+              "Prize amount for the pending winner"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "pending_commission",
+            "docs": [
+              "Commission amount for the pending round"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "has_pending_prize",
+            "docs": [
+              "Whether there is an unclaimed prize"
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "winners",
+            "docs": [
+              "Last N winners (circular buffer)"
+            ],
+            "type": {
+              "array": [
+                {
+                  "defined": {
+                    "name": "WinnerRecord"
+                  }
+                },
+                10
+              ]
+            }
+          },
+          {
+            "name": "winners_count",
+            "docs": [
+              "How many winner records have been filled (max 10)"
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "top_winners",
+            "type": {
+              "array": [
+                {
+                  "defined": {
+                    "name": "WinnerRecord"
+                  }
+                },
+                10
+              ]
+            }
+          },
+          {
+            "name": "top_winners_count",
+            "type": "u8"
+          },
+          {
+            "name": "recent_bets",
+            "type": {
+              "array": [
+                {
+                  "defined": {
+                    "name": "BetRecord"
+                  }
+                },
+                10
+              ]
+            }
+          },
+          {
+            "name": "recent_bets_count",
+            "type": "u8"
+          },
+          {
+            "name": "pending_round_number",
+            "docs": [
+              "Round number for the pending prize (for correct event emission)"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "pending_bet_count",
+            "docs": [
+              "Number of bets in the pending round (for correct prize calculation context)"
+            ],
+            "type": "u32"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "vault_bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PendingPrizePaid",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "round_number",
+            "type": "u64"
+          },
+          {
+            "name": "winner",
+            "type": "pubkey"
+          },
+          {
+            "name": "prize",
+            "type": "u64"
+          },
+          {
+            "name": "commission",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RoundEnded",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "round_number",
+            "type": "u64"
+          },
+          {
+            "name": "winner",
+            "type": "pubkey"
+          },
+          {
+            "name": "prize",
+            "type": "u64"
+          },
+          {
+            "name": "commission",
+            "type": "u64"
+          },
+          {
+            "name": "bet_count",
+            "type": "u32"
+          }
+        ]
+      }
+    },
+    {
+      "name": "WinnerRecord",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "wallet",
+            "docs": [
+              "Winner wallet address"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "prize",
+            "docs": [
+              "Prize amount (in lamports)"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "round_number",
+            "docs": [
+              "Round number"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "docs": [
+              "Timestamp when round ended"
+            ],
+            "type": "i64"
+          }
+        ]
+      }
+    }
+  ]
+}

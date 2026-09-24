@@ -1,7 +1,7 @@
-target
 .anchor
 .DS_Store
-**/*.rs.bk
-.keys
+target
 node_modules
+dist
+build
 test-ledger

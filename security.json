@@ -1,0 +1,23 @@
+{
+  "name": "Loot King",
+  "description": "On-chain last-bettor-wins Solana game.",
+  "logo": "https://raw.githubusercontent.com/loot-king-game/smart-contract/main/assets/logo.png",
+  "project_url": "https://github.com/loot-king-game/smart-contract",
+  "sdk": "https://github.com/loot-king-game/smart-contract",
+  "source_code": "https://github.com/loot-king-game/smart-contract",
+  "source_revision": "set by scripts/security-metadata.sh",
+  "contacts": [
+    "github:https://github.com/loot-king-game/smart-contract/issues",
+    "github:https://github.com/loot-king-game/smart-contract/security/advisories"
+  ],
+  "policy": "https://github.com/loot-king-game/smart-contract/security/advisories",
+  "preferred_languages": ["en"],
+  "program_id": "6hKr9jCZtjfsjtdKZ7cBvMrQsXaHjewjwsC6uW1JYXwq",
+  "verification_pda": "J6zm4rRiUrpHPFcEQfRgqJrA1g4kqcK24AmdbEkpq6gZ",
+  "verification_hash": "2c4dddec6ab1cedae3edb9697cd1e66667c17b99edbec324b64c8346c5f639f7",
+  "auditors": [
+    "Internal security review: https://github.com/loot-king-game/smart-contract/blob/main/docs/SECURITY_AUDIT.md"
+  ],
+  "expiry": "2027-06-03",
+  "version": "0.1.0"
+}
