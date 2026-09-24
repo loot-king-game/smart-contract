@@ -65,6 +65,37 @@ function addSignature(tx: AnyTx, key: anchor.web3.PublicKey, sig: Buffer) {
 }
 
 /**
+ * Some RPCs (e.g. PublicNode) report "block height exceeded" for transactions
+ * that did land, so on a confirmation error the signature status decides.
+ */
+async function confirm(
+  connection: anchor.web3.Connection,
+  signature: string,
+  latest: anchor.web3.BlockhashWithExpiryBlockHeight
+) {
+  try {
+    await connection.confirmTransaction({ signature, ...latest }, "confirmed");
+    return;
+  } catch (error) {
+    // The status can lag behind the failed confirmation; poll for a while.
+    for (let attempt = 0; attempt < 10; attempt++) {
+      const { value } = await connection.getSignatureStatuses([signature], {
+        searchTransactionHistory: true,
+      });
+      const status = value[0];
+      if (status?.err) {
+        throw new Error(
+          `Transaction ${signature} failed: ${JSON.stringify(status.err)}`
+        );
+      }
+      if (status?.confirmationStatus) return;
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+    }
+    throw error;
+  }
+}
+
+/**
  * Signs each transaction with the Ledger (plus the hot wallet when it is a
  * required signer) and sends them in order. The blockhash is refreshed right
  * before signing because exported transactions often expire while waiting for
@@ -110,10 +141,7 @@ export async function signAndSendWithLedger(
       const txid = await connection.sendRawTransaction(tx.serialize(), {
         preflightCommitment: "confirmed",
       });
-      await connection.confirmTransaction(
-        { signature: txid, ...latest },
-        "confirmed"
-      );
+      await confirm(connection, txid, latest);
       console.log(`[${i + 1}/${txs.length}] Signature: ${txid}`);
       signatures.push(txid);
     }
