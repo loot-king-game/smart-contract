@@ -33,7 +33,8 @@ step_check() {
     exit 1
   fi
 
-  git fetch --quiet --all
+  # Refresh remote-tracking refs; an unreachable extra remote is not fatal.
+  git fetch --quiet --all 2>/dev/null || true
   if ! git branch -r --contains "$COMMIT" | grep -q .; then
     echo "Commit $COMMIT is not pushed to any remote." >&2
     exit 1
