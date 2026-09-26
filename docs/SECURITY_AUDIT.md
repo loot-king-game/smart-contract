@@ -1,8 +1,10 @@
 # Loot King — Security Audit Report
 
-> Internal review, not an external audit. The original report below covers the
-> devnet build from 2025-02-16; see the [addendum](#addendum-2026-09-23) for
-> the resolution status and findings on the deployed mainnet program.
+> Internal reviews, not an external audit. The original report below covers the
+> devnet build from 2025-02-16; the [addendum](#addendum-2026-09-23) tracks the
+> resolution status on the deployed mainnet program, and the
+> [2026-09-26 review](#review-2026-09-26-internal-ai-assisted) is the latest full
+> review of the mainnet code.
 
 **Date:** 2025-02-16
 **Program ID:** `6Ersmor8nvBVPgy8h2pRhMNcXChj6UKDuPQcmFSb5iqr`
@@ -144,4 +146,80 @@ Additional changes: the commission rate is locked per round (`round_commission_b
 
 | # | Severity | Title | Description | Mitigation |
 |---|----------|-------|-------------|------------|
-| 7 | **Medium** | Vault payouts can be blocked by stray lamports | The vault PDA holds exactly the sum of open banks. Payouts transfer the full bank out. If anyone sends a few lamports to the vault during a round, the payout would leave it with a non-zero balance below the rent-exempt minimum; the runtime rejects that rent-state transition (`insufficient funds for rent`), so `claim_prize` and `place_bet` fail until the program is upgraded. | Operational: the vault is pre-funded with a rent-exempt reserve (`pnpm fund-vault`, also done by `pnpm game:setup`), after which every payout leaves at least the reserve and donations are harmless. `pnpm status` warns when the reserve is missing. Covered by the `vault rent-exempt reserve` tests. A future upgrade should fund the reserve in `initialize` or pay out `min(bank, lamports - rent_min)`. |
+| 7 | **Low** (revised 2026-09-26, was Medium) | Stray lamports in the vault can block `claim_prize` | See [R-2](#r-2--stray-lamports-in-the-vault-block-claim_prize-low-mitigated) below: only the permissionless `claim_prize` is affected; settling through the next round's first bet still works. | Operational: vault pre-funded with a rent-exempt reserve (`pnpm fund-vault`, also done by `pnpm game:setup`); `pnpm status` warns when it is missing. |
+
+---
+
+## Review 2026-09-26 (internal, AI-assisted)
+
+**Scope:** `programs/loot-king/src/**` at commit `1f618cc` — the OtterSec-verified build deployed on mainnet as `6hKr9jCZtjfsjtdKZ7cBvMrQsXaHjewjwsC6uW1JYXwq` (program source unchanged since the initial commit).
+**Method:** two independent passes by AI models — Claude Opus 5.5 and Claude Fable 5.1 — reading all program code, the bankrun test suite (47 tests), targeted bankrun probes, and read-only mainnet queries/simulations. Findings were cross-checked between the passes and against the code. This is **not** a third-party professional audit.
+**Mainnet state at review time:** upgrade authority, game authority and commission wallet are the same Ledger key (`H6b59QtgAF7VCx3j73mDqMSxhmkTR7erAL2MbsX17zfm`); commission 300 bps; vault reserve 1,300,480 lamports (2× the current rent-exempt minimum of 650,240).
+
+**Result:** no path was found that lets anyone other than the upgrade authority take funds, lock them permanently, or pay the wrong recipient. Account validation, PDA handling, arithmetic and the round state machine are correct. Remaining findings are centralization, admin-caused or griefing issues with bounded impact, plus informational notes.
+
+| ID | Severity | Title | Status |
+|----|----------|-------|--------|
+| R-1 | Low (centralization) | One Ledger key holds upgrade, game authority and commission wallet | Accepted |
+| R-2 | Low | Stray lamports in the vault block `claim_prize` | Mitigated (vault reserve); code fix planned |
+| R-3 | Low | Commission wallet choice can block commissioned payouts | Mitigated operationally; code fix planned |
+| R-4 | Low | `place_bet` has no expectation parameters | Disclosed; code fix planned |
+| R-5 | Informational | `has_pending_prize` path is unreachable; payout events differ by path | Code cleanup planned |
+| R-6 | Informational | bankrun test runtime differs from mainnet | Noted |
+| R-7 | Informational | Late-phase timers favour faster transaction landing | Disclosed (game design) |
+| R-8 | Informational | Upgrade/deployment notes | Noted |
+
+### R-1 — One key controls everything (Low, centralization)
+
+The upgrade authority can deploy new program code at any time, including code that moves vault funds; this power is not bounded by the program. All other admin powers are bounded (commission ≤ 10% and locked per round; commission wallet). A lost or compromised Ledger would put the funds in play at risk.
+
+**Status:** accepted. The authority is a hardware wallet; every upgrade is public on-chain and the verified-build record lets anyone check that deployed code matches this repository. The upgradeable design is kept so bugs can be fixed.
+
+### R-2 — Stray lamports in the vault block `claim_prize` (Low, mitigated)
+
+`instructions/claim_prize.rs`, `instructions/place_bet.rs`. Payouts move exactly `bank` out of the vault. Without a reserve, a donation of 1…rent_min−1 lamports during a round leaves the vault rent-paying after a `claim_prize` payout, and the runtime rejects that transition (`insufficient funds for rent`). Settling the same round through the next round's first `place_bet` still succeeds, because the new bet arrives in the same transaction and keeps the vault rent-exempt; anyone can also clear the condition by topping the vault up.
+
+**Status:** mitigated — the vault holds a rent-exempt reserve on mainnet and devnet, so donations are harmless; `pnpm status` warns if the reserve is missing; covered by the `vault rent-exempt reserve` tests. Planned: enforce the reserve in code (fund it in `initialize`, or never pay out below the rent-exempt minimum).
+
+### R-3 — Commission wallet choice can block commissioned payouts (Low)
+
+`instructions/update_commission_wallet.rs` only rejects the zero address, and the commission wallet is not locked per round. Two ways a commission transfer can fail, which reverts `claim_prize` and any `place_bet` that settles a multi-bet round (solo rounds still settle, as they carry no commission):
+
+- the wallet is a reserved account (sysvar or builtin program), which the runtime demotes to read-only (`ConstraintMut`) — verified in bankrun;
+- the wallet is an empty system account and the commission is below the rent-exempt minimum (e.g. 3% of a 0.02 SOL bank = 600,000 lamports < 650,240), so the transfer would create a rent-paying account.
+
+Only the authority can set the wallet and can undo it at any time; it cannot redirect the winner's prize. Setting the wallet to a program account (e.g. the vault) would strand the commission there.
+
+**Status:** mitigated operationally — the commission wallet is the funded Ledger, and `pnpm status` warns if its balance falls below the rent-exempt minimum. Planned: validate the wallet (system-owned, not reserved), lock it per round, and/or pay the winner first with commission held back if its transfer cannot succeed.
+
+### R-4 — `place_bet` has no expectation parameters (Low)
+
+A bet cannot state the round, bet count or maximum commission it expects:
+
+- a malicious authority could front-run the first bet of a new round with `update_commission` (bounded by the 10% cap);
+- a normal bet intended to overtake that lands at or after the deadline settles the round (paying the previous King) and starts a new round with the sender as first bettor — no funds are lost, and a solo round is refunded in full; a fast bet in the same situation reverts instead;
+- racing bets can move a bet into the next timer phase.
+
+**Status:** disclosed on the site (FAQ, final-seconds hint; countdown synced to the on-chain clock). Planned: optional `expected_round` / `max_commission_bps` arguments.
+
+### R-5 — Unreachable pending-prize state; event differences (Informational)
+
+`finalize_round` and `pay_pending_prize` always run in the same transaction, so `has_pending_prize` can never persist as `true`; the branch and `pending_*` fields are unreachable. `claim_prize` does not check `has_pending_prize`, which is safe only while that state is unreachable. Payout events differ by path (`RoundEnded` + `PendingPrizePaid` vs `RoundEnded` only). Planned: remove the pending machinery (or guard `claim_prize` if it ever becomes reachable) and standardize events.
+
+### R-6 — bankrun differs from mainnet (Informational)
+
+The test runtime (solana-bankrun 0.4.0) uses an older rent minimum (890,880) and still enforces executable-account lamport checks that mainnet has dropped (SIMD-0162). For example, "leader converts their key into a program account" blocks payouts in bankrun but not on mainnet (verified by mainnet simulation). Runtime-dependent edge cases should be confirmed against the mainnet feature set (e.g. LiteSVM/Surfpool or simulation). Additional paths exercised and found safe: the leader settling its own expired round with itself as `pending_winner_account`, `winner == commission_wallet`, and a leader account reassigned to another owner.
+
+### R-7 — Late-phase timers favour faster landing (Informational)
+
+Each bet sets `deadline = now + timer` (a second bet can shorten a 60-minute round to 5 minutes). With 30–60 s windows in the late phase, priority fees and bundle services influence who lands last; a validator can only censor during its own short leader slots. A leader can re-extend with a second wallet (the leader check is per key). This matches the game design and is disclosed here.
+
+### R-8 — Upgrade/deployment notes (Informational)
+
+- `initialize` is permissionless: whoever calls it first becomes the authority. Moot on mainnet (authority verified), relevant for any redeploy — initialize in the same session as the deploy.
+- `GameState` has no spare space (1,927 bytes = `8 + INIT_SPACE`); an upgrade that adds fields needs a realloc/migration step.
+- `bank * commission_bps` could only overflow above ~1.8e16 lamports (unreachable); a `u128` intermediate is a cheap hardening.
+
+### Checked and considered safe
+
+PDA seeds and stored canonical bumps; vault as `SystemAccount` (cannot be substituted); winner and commission accounts checked with `require_keys_eq!` in both payout paths; duplicate writable accounts; payouts computed from `bank`, never from the vault balance (donations cannot inflate payouts, the reserve is never spent); consistent deadline boundaries (`now < deadline` to bet, `>=` to settle); leader cannot bet twice in a row; fast bet rejected as a round's first bet, including after in-transaction settlement; commission locked per round, capped, zero on solo rounds; prize + commission == bank; checked arithmetic with `overflow-checks`; all admin instructions require the authority signer; two-step authority transfer; CPI only to the System Program; bounded leaderboard buffers; no close or realloc instructions.

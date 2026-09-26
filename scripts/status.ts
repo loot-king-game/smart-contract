@@ -93,6 +93,17 @@ run(async () => {
     console.log(
       `Vault reserve:       ${reserve} lamports (rent-exempt min ${rentMin})`
     );
+    // An empty commission wallet cannot receive a commission smaller than the
+    // rent-exempt minimum, which would block multi-bet payouts (review R-3).
+    const commissionBalance = await connection.getBalance(
+      state.commissionWallet
+    );
+    console.log(`Commission balance:  ${lamportsToSol(commissionBalance)} SOL`);
+    if (commissionBalance < rentMin) {
+      warnings.push(
+        "Commission wallet balance is below the rent-exempt minimum; small commissions (and thus multi-bet payouts) would fail. Fund it."
+      );
+    }
     if (reserve < BigInt(rentMin)) {
       warnings.push(
         `Vault reserve is below the rent-exempt minimum; payouts can be blocked. Run: pnpm fund-vault -- ${cluster}`
