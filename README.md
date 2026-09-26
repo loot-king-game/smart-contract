@@ -6,7 +6,7 @@ On-chain "king of the hill" game. Each bet makes the bettor the leader and reset
 |---|---|
 | Program ID (devnet + mainnet) | `6hKr9jCZtjfsjtdKZ7cBvMrQsXaHjewjwsC6uW1JYXwq` |
 | Framework | Anchor 0.32.1, Rust 1.89.0 |
-| Upgrade / game / IDL authority | `H6b59QtgAF7VCx3j73mDqMSxhmkTR7erAL2MbsX17zfm` (Ledger) |
+| Upgrade / game / IDL authority | `H6b59QtgAF7VCx3j73mDqMSxhmkTR7erAL2MbsX17zfm` |
 | Verified hash | `2c4dddec6ab1cedae3edb9697cd1e66667c17b99edbec324b64c8346c5f639f7` |
 | Security review | [docs/SECURITY_AUDIT.md](docs/SECURITY_AUDIT.md) |
 

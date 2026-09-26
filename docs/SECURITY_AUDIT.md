@@ -154,13 +154,13 @@ Additional changes: the commission rate is locked per round (`round_commission_b
 
 **Scope:** `programs/loot-king/src/**` at commit `1f618cc` — the OtterSec-verified build deployed on mainnet as `6hKr9jCZtjfsjtdKZ7cBvMrQsXaHjewjwsC6uW1JYXwq` (program source unchanged since the initial commit).
 **Method:** two independent passes by AI models — Claude Opus 5.5 and Claude Fable 5.1 — reading all program code, the bankrun test suite (47 tests), targeted bankrun probes, and read-only mainnet queries/simulations. Findings were cross-checked between the passes and against the code. This is **not** a third-party professional audit.
-**Mainnet state at review time:** upgrade authority, game authority and commission wallet are the same Ledger key (`H6b59QtgAF7VCx3j73mDqMSxhmkTR7erAL2MbsX17zfm`); commission 300 bps; vault reserve 1,300,480 lamports (2× the current rent-exempt minimum of 650,240).
+**Mainnet state at review time:** upgrade authority, game authority and commission wallet are the same key (`H6b59QtgAF7VCx3j73mDqMSxhmkTR7erAL2MbsX17zfm`); commission 300 bps; vault reserve 1,300,480 lamports (2× the current rent-exempt minimum of 650,240).
 
 **Result:** no path was found that lets anyone other than the upgrade authority take funds, lock them permanently, or pay the wrong recipient. Account validation, PDA handling, arithmetic and the round state machine are correct. Remaining findings are centralization, admin-caused or griefing issues with bounded impact, plus informational notes.
 
 | ID | Severity | Title | Status |
 |----|----------|-------|--------|
-| R-1 | Low (centralization) | One Ledger key holds upgrade, game authority and commission wallet | Accepted |
+| R-1 | Low (centralization) | One key holds upgrade, game authority and commission wallet | Accepted |
 | R-2 | Low | Stray lamports in the vault block `claim_prize` | Mitigated (vault reserve); code fix planned |
 | R-3 | Low | Commission wallet choice can block commissioned payouts | Mitigated operationally; code fix planned |
 | R-4 | Low | `place_bet` has no expectation parameters | Disclosed; code fix planned |
@@ -171,9 +171,9 @@ Additional changes: the commission rate is locked per round (`round_commission_b
 
 ### R-1 — One key controls everything (Low, centralization)
 
-The upgrade authority can deploy new program code at any time, including code that moves vault funds; this power is not bounded by the program. All other admin powers are bounded (commission ≤ 10% and locked per round; commission wallet). A lost or compromised Ledger would put the funds in play at risk.
+The upgrade authority can deploy new program code at any time, including code that moves vault funds; this power is not bounded by the program. All other admin powers are bounded (commission ≤ 10% and locked per round; commission wallet). A lost or compromised admin key would put the funds in play at risk.
 
-**Status:** accepted. The authority is a hardware wallet; every upgrade is public on-chain and the verified-build record lets anyone check that deployed code matches this repository. The upgradeable design is kept so bugs can be fixed.
+**Status:** accepted. Every upgrade is public on-chain and the verified-build record lets anyone check that deployed code matches this repository. The upgradeable design is kept so bugs can be fixed.
 
 ### R-2 — Stray lamports in the vault block `claim_prize` (Low, mitigated)
 
@@ -190,7 +190,7 @@ The upgrade authority can deploy new program code at any time, including code th
 
 Only the authority can set the wallet and can undo it at any time; it cannot redirect the winner's prize. Setting the wallet to a program account (e.g. the vault) would strand the commission there.
 
-**Status:** mitigated operationally — the commission wallet is the funded Ledger, and `pnpm status` warns if its balance falls below the rent-exempt minimum. Planned: validate the wallet (system-owned, not reserved), lock it per round, and/or pay the winner first with commission held back if its transfer cannot succeed.
+**Status:** mitigated operationally — the commission wallet is a funded wallet, and `pnpm status` warns if its balance falls below the rent-exempt minimum. Planned: validate the wallet (system-owned, not reserved), lock it per round, and/or pay the winner first with commission held back if its transfer cannot succeed.
 
 ### R-4 — `place_bet` has no expectation parameters (Low)
 
