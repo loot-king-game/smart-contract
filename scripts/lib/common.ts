@@ -8,9 +8,18 @@ const { Connection, Keypair, PublicKey } = anchor.web3;
 export const ROOT = path.resolve(__dirname, "../..");
 export const DEFAULT_PROGRAM_ID =
   "6hKr9jCZtjfsjtdKZ7cBvMrQsXaHjewjwsC6uW1JYXwq";
-export const DEFAULT_LEDGER_PUBKEY =
-  "H6b59QtgAF7VCx3j73mDqMSxhmkTR7erAL2MbsX17zfm";
 export const IDL_PATH = path.join(ROOT, "idl/loot_king.json");
+
+// Operator-specific values live in an untracked .env at the repo root
+// (see .env.example). Existing environment variables take precedence.
+const envFile = path.join(ROOT, ".env");
+if (fs.existsSync(envFile)) {
+  for (const line of fs.readFileSync(envFile, "utf8").split("\n")) {
+    const match = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*?)\s*$/);
+    if (!match || process.env[match[1]] !== undefined) continue;
+    process.env[match[1]] = match[2].replace(/^(['"])(.*)\1$/, "$2");
+  }
+}
 
 export type Cluster = "devnet" | "mainnet";
 
@@ -59,8 +68,13 @@ export function programId(): anchor.web3.PublicKey {
   return new PublicKey(process.env.PROGRAM_ID ?? DEFAULT_PROGRAM_ID);
 }
 
-export function ledgerPubkey(): anchor.web3.PublicKey {
-  return new PublicKey(process.env.LEDGER_PUBKEY ?? DEFAULT_LEDGER_PUBKEY);
+export function authorityPubkey(): anchor.web3.PublicKey {
+  if (!process.env.AUTHORITY_PUBKEY) {
+    throw new Error(
+      "AUTHORITY_PUBKEY is not set (put it in .env, see .env.example)."
+    );
+  }
+  return new PublicKey(process.env.AUTHORITY_PUBKEY);
 }
 
 export function pdas(id: anchor.web3.PublicKey) {

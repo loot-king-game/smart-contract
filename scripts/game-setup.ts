@@ -1,9 +1,9 @@
 // One-time game setup after the first deploy, run with the hot wallet:
 //   1. initialize the game state (hot wallet becomes game authority),
-//   2. point the commission wallet at the Ledger,
+//   2. point the commission wallet at the authority signer,
 //   3. top up the vault rent-exempt reserve,
-//   4. propose the Ledger as the new game authority.
-// Finish with `pnpm game-authority:accept -- <cluster>` on the Ledger.
+//   4. propose the authority signer as the new game authority.
+// Finish with `pnpm game-authority:accept -- <cluster>` on the authority signer.
 // Every step is skipped when already done, so re-running is safe.
 //
 // Usage: [RPC_URL=<url>] pnpm game:setup -- devnet|mainnet
@@ -12,7 +12,7 @@ import {
   connect,
   fetchGameState,
   hotWalletPath,
-  ledgerPubkey,
+  authorityPubkey,
   loadProgram,
   maskRpc,
   parseCluster,
@@ -36,7 +36,7 @@ run(async () => {
   const cluster = parseCluster("pnpm game:setup -- devnet|mainnet");
   const connection = connect(cluster);
   const id = programId();
-  const ledger = ledgerPubkey();
+  const authority = authorityPubkey();
   const hotWallet = readKeypair(hotWalletPath());
   const program = loadProgram(connection, id, hotWallet);
   const { gameState, vault } = pdas(id);
@@ -47,14 +47,14 @@ run(async () => {
   console.log(`Game state:         ${gameState}`);
   console.log(`Vault:              ${vault}`);
   console.log(`Hot wallet:         ${hotWallet.publicKey}`);
-  console.log(`Ledger pubkey:      ${ledger}`);
+  console.log(`Authority:          ${authority}`);
 
   let state = await fetchGameState(program, gameState);
 
   if (!state) {
     console.log("Initializing game state...");
     const txid = await program.methods
-      .initialize(ledger)
+      .initialize(authority)
       .accounts({
         gameState,
         vault,
@@ -69,7 +69,7 @@ run(async () => {
 
   const isHotAuthority = state.authority.equals(hotWallet.publicKey);
 
-  if (!state.commissionWallet.equals(ledger)) {
+  if (!state.commissionWallet.equals(authority)) {
     if (!isHotAuthority) {
       console.log(
         "Commission wallet differs, but hot wallet is not the authority; skipping."
@@ -77,7 +77,7 @@ run(async () => {
     } else {
       console.log("Updating commission wallet...");
       const txid = await program.methods
-        .updateCommissionWallet(ledger)
+        .updateCommissionWallet(authority)
         .accounts({ gameState, authority: hotWallet.publicKey } as any)
         .rpc();
       console.log(`Commission tx:      ${txid}`);
@@ -106,10 +106,10 @@ run(async () => {
     console.log(
       "Hot wallet is not the game authority; skipping transfer proposal."
     );
-  } else if (!state.pendingAuthority.equals(ledger)) {
-    console.log("Proposing Ledger game authority...");
+  } else if (!state.pendingAuthority.equals(authority)) {
+    console.log("Proposing new game authority...");
     const txid = await program.methods
-      .transferAuthority(ledger)
+      .transferAuthority(authority)
       .accounts({ gameState, authority: hotWallet.publicKey } as any)
       .rpc();
     console.log(`Transfer tx:        ${txid}`);

@@ -4,7 +4,9 @@ import * as anchor from "@coral-xyz/anchor";
 
 const { PublicKey, Transaction, VersionedTransaction } = anchor.web3;
 
-const LEDGER_PATH = process.env.LEDGER_PATH ?? "44'/501'/0'";
+// Hardware signer (Ledger-compatible Solana app) used for authority actions.
+// SIGNER_PATH is the derivation path of the authority key.
+const signerPath = () => process.env.SIGNER_PATH ?? "44'/501'/0'";
 const REFRESH_BLOCKHASH = process.env.REFRESH_BLOCKHASH !== "false";
 
 export type AnyTx = anchor.web3.Transaction | anchor.web3.VersionedTransaction;
@@ -96,12 +98,12 @@ async function confirm(
 }
 
 /**
- * Signs each transaction with the Ledger (plus the hot wallet when it is a
+ * Signs each transaction with the authority signer (plus the hot wallet when it is a
  * required signer) and sends them in order. The blockhash is refreshed right
  * before signing because exported transactions often expire while waiting for
- * Ledger approval; set REFRESH_BLOCKHASH=false to keep the original one.
+ * signer approval; set REFRESH_BLOCKHASH=false to keep the original one.
  */
-export async function signAndSendWithLedger(
+export async function signAndSendWithSigner(
   connection: anchor.web3.Connection,
   txs: AnyTx[],
   hotWallet: anchor.web3.Keypair | null
@@ -110,13 +112,13 @@ export async function signAndSendWithLedger(
   const transport = await TransportNodeHid.create();
   try {
     const solana = new Solana(transport);
-    const { address } = await solana.getAddress(LEDGER_PATH, false);
-    const ledger = new PublicKey(address);
-    console.log(`Ledger signer: ${ledger}`);
+    const { address } = await solana.getAddress(signerPath(), false);
+    const signer = new PublicKey(address);
+    console.log(`Authority signer: ${signer}`);
 
     for (const [i, tx] of txs.entries()) {
-      if (!requiresSigner(tx, ledger)) {
-        throw new Error(`Transaction ${i + 1} does not require ${ledger}.`);
+      if (!requiresSigner(tx, signer)) {
+        throw new Error(`Transaction ${i + 1} does not require ${signer}.`);
       }
 
       const latest = await connection.getLatestBlockhash("confirmed");
@@ -127,12 +129,14 @@ export async function signAndSendWithLedger(
         else tx.sign([hotWallet]);
       }
 
-      console.log(`[${i + 1}/${txs.length}] Approve on Ledger...`);
+      console.log(
+        `[${i + 1}/${txs.length}] Approve on the authority signer...`
+      );
       const { signature } = await solana.signTransaction(
-        LEDGER_PATH,
+        signerPath(),
         messageBytes(tx)
       );
-      addSignature(tx, ledger, Buffer.from(signature));
+      addSignature(tx, signer, Buffer.from(signature));
 
       if (tx instanceof Transaction && !tx.verifySignatures()) {
         throw new Error("Signature verification failed before send.");
@@ -151,11 +155,11 @@ export async function signAndSendWithLedger(
   return signatures;
 }
 
-export async function ledgerAddress(): Promise<anchor.web3.PublicKey> {
+export async function signerAddress(): Promise<anchor.web3.PublicKey> {
   const transport = await TransportNodeHid.create();
   try {
     const { address } = await new Solana(transport).getAddress(
-      LEDGER_PATH,
+      signerPath(),
       false
     );
     return new PublicKey(address);

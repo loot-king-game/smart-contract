@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
-# Upgrade of a program whose upgrade authority is the Ledger. The hot wallet
-# writes the buffer; the Ledger signs only the final upgrade transaction.
+# Upgrade of a program whose upgrade authority is the authority signer. The hot wallet
+# writes the buffer; the authority signer signs only the final upgrade transaction.
 # A fresh buffer keypair is generated for each run (override BUFFER_KEYPAIR).
 #
-# Usage: [RPC_URL=<url>] pnpm upgrade:ledger -- devnet|mainnet
+# Usage: [RPC_URL=<url>] pnpm program:upgrade -- devnet|mainnet
 # Afterwards: update idl/loot_king.json if the interface changed
 # (pnpm idl:check), then re-run pnpm verify for the new commit.
 source "$(dirname "$0")/lib/env.sh"
 parse_cluster "$@"
+require_var SIGNER_WALLET
+require_var AUTHORITY_PUBKEY
 WRITE_BUFFER_MAX_SIGN_ATTEMPTS="${WRITE_BUFFER_MAX_SIGN_ATTEMPTS:-10}"
 
 if [[ -z "${BUFFER_KEYPAIR:-}" ]]; then
@@ -22,7 +24,7 @@ echo "RPC:           $(masked_rpc)"
 echo "Program ID:    $PROGRAM_ID"
 echo "Buffer:        $BUFFER_PUBKEY"
 echo "Hot wallet:    $(solana-keygen pubkey "$HOT_WALLET")"
-echo "Ledger:        $(solana-keygen pubkey "$LEDGER_WALLET")"
+echo "Signer:        $(solana-keygen pubkey "$SIGNER_WALLET")"
 
 solana program show "$PROGRAM_ID" --url "$RPC"
 
@@ -44,13 +46,13 @@ solana program write-buffer "$PROGRAM_SO" \
 
 solana program set-buffer-authority "$BUFFER_PUBKEY" \
   --buffer-authority "$HOT_WALLET" \
-  --new-buffer-authority "$LEDGER_PUBKEY" \
+  --new-buffer-authority "$AUTHORITY_PUBKEY" \
   --keypair "$HOT_WALLET" \
   --url "$RPC"
 
-echo "Approve the upgrade on the Ledger."
+echo "Approve the upgrade on the authority signer."
 solana program upgrade "$BUFFER_PUBKEY" "$PROGRAM_ID" \
-  --upgrade-authority "$LEDGER_WALLET" \
+  --upgrade-authority "$SIGNER_WALLET" \
   --fee-payer "$HOT_WALLET" \
   --keypair "$HOT_WALLET" \
   --url "$RPC"

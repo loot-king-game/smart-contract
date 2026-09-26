@@ -2,20 +2,32 @@
 #   source "$(dirname "$0")/lib/env.sh"
 #   parse_cluster "$@"   # sets CLUSTER, RPC and shifts ARGS
 #
-# Every value can be overridden through the environment.
+# Every value can be overridden through the environment. Operator-specific
+# values (authority key, signer, keypair paths) live in an untracked `.env` at
+# the repo root — see `.env.example`.
 
 set -euo pipefail
 
 SCRIPT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$SCRIPT_ROOT"
 
+if [[ -f .env ]]; then
+  set -a
+  # shellcheck disable=SC1091
+  source .env
+  set +a
+fi
+
 PROGRAM_ID="${PROGRAM_ID:-6hKr9jCZtjfsjtdKZ7cBvMrQsXaHjewjwsC6uW1JYXwq}"
 LIBRARY_NAME="${LIBRARY_NAME:-loot_king}"
 REPO_URL="${REPO_URL:-https://github.com/loot-king-game/smart-contract}"
 HOT_WALLET="${HOT_WALLET:-$HOME/.config/solana/id.json}"
-LEDGER_WALLET="${LEDGER_WALLET:-usb://ledger?key=0}"
-LEDGER_PUBKEY="${LEDGER_PUBKEY:-H6b59QtgAF7VCx3j73mDqMSxhmkTR7erAL2MbsX17zfm}"
-PROGRAM_KEYPAIR="${PROGRAM_KEYPAIR:-.keys/loot_king-devnet-ledger-keypair.json}"
+# Authority signer as a Solana CLI keypair URL (e.g. usb://ledger?key=0 for a
+# hardware wallet) and its public key.
+SIGNER_WALLET="${SIGNER_WALLET:-}"
+AUTHORITY_PUBKEY="${AUTHORITY_PUBKEY:-}"
+# Program keypair, only needed for the first deploy.
+PROGRAM_KEYPAIR="${PROGRAM_KEYPAIR:-}"
 PROGRAM_SO="${PROGRAM_SO:-target/deploy/loot_king.so}"
 IDL_FILE="${IDL_FILE:-idl/loot_king.json}"
 # solana-verify >= 0.5.2 is required: 0.4.x cannot parse Cargo.lock files that
@@ -55,6 +67,14 @@ parse_cluster() {
 # Prints the RPC URL with any api-key query value masked.
 masked_rpc() {
   printf '%s' "$RPC" | sed -E 's/(api[-_]?key=)[^&]+/\1***/I'
+}
+
+require_var() {
+  local name="$1"
+  if [[ -z "${!name:-}" ]]; then
+    echo "$name is not set (put it in .env, see .env.example)" >&2
+    exit 1
+  fi
 }
 
 require_file() {

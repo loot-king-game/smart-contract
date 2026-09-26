@@ -1,15 +1,16 @@
 # Operations runbook
 
-All scripts run from the repo root. Shared defaults live in `scripts/lib/env.sh` and `scripts/lib/common.ts`; each can be overridden with an env var.
+All scripts run from the repo root. Shared defaults live in `scripts/lib/env.sh` and `scripts/lib/common.ts`; each can be overridden with an env var. Operator-specific values go in an untracked `.env` (copy `.env.example`); scripts load it automatically.
 
 | Variable | Default |
 |---|---|
 | `RPC_URL` | devnet: `https://api.devnet.solana.com`; **mainnet: required** (public mainnet-beta rejects deploys and most traffic) |
 | `PROGRAM_ID` | `6hKr9jCZtjfsjtdKZ7cBvMrQsXaHjewjwsC6uW1JYXwq` |
 | `HOT_WALLET` | `~/.config/solana/id.json` (fee payer) |
-| `LEDGER_WALLET` / `LEDGER_PATH` | `usb://ledger?key=0` / `44'/501'/0'` |
-| `LEDGER_PUBKEY` | `H6b59QtgAF7VCx3j73mDqMSxhmkTR7erAL2MbsX17zfm` |
-| `PROGRAM_KEYPAIR` | `.keys/loot_king-devnet-ledger-keypair.json` (first deploy only) |
+| `SIGNER_WALLET` | **required for authority actions** — Solana CLI URL of the authority signer (e.g. `usb://ledger?key=0` for a hardware wallet) |
+| `SIGNER_PATH` | `44'/501'/0'` — derivation path of the authority key on the hardware signer |
+| `AUTHORITY_PUBKEY` | **required for authority actions** — public key of the program / game authority |
+| `PROGRAM_KEYPAIR` | program keypair path, first deploy only |
 | `REPO_URL` | `https://github.com/loot-king-game/smart-contract` |
 | `SOLANA_VERIFY` | `solana-verify` (must be ≥ 0.5.2) |
 | `BASE_IMAGE` | `solanafoundation/anchor:v0.32.1` |
@@ -37,9 +38,9 @@ RPC_URL=<rpc> pnpm fund-vault -- mainnet --execute  # send from HOT_WALLET
 ## First deploy (new cluster)
 
 ```bash
-RPC_URL=<rpc> pnpm deploy:ledger -- mainnet          # verifiable build, deploy, IDL init, authorities → Ledger
-RPC_URL=<rpc> pnpm game:setup -- mainnet             # initialize, commission wallet, vault reserve, propose Ledger
-RPC_URL=<rpc> pnpm game-authority:accept -- mainnet  # Ledger accepts game authority
+RPC_URL=<rpc> pnpm program:deploy -- mainnet          # verifiable build, deploy, IDL init, hand authorities to AUTHORITY_PUBKEY
+RPC_URL=<rpc> pnpm game:setup -- mainnet             # initialize, commission wallet, vault reserve, propose AUTHORITY_PUBKEY
+RPC_URL=<rpc> pnpm game-authority:accept -- mainnet  # authority signer accepts game authority
 ```
 
 Then run the verification flow below.
@@ -47,10 +48,10 @@ Then run the verification flow below.
 ## Upgrade
 
 ```bash
-RPC_URL=<rpc> pnpm upgrade:ledger -- mainnet
+RPC_URL=<rpc> pnpm program:upgrade -- mainnet
 ```
 
-Builds the verifiable binary, writes a buffer with the hot wallet (fresh buffer keypair in `.keys/`), hands the buffer to the Ledger and asks the Ledger to sign the upgrade. Afterwards:
+Builds the verifiable binary, writes a buffer with the hot wallet (fresh buffer keypair in `.keys/`), hands the buffer to the authority signer and asks the authority signer to sign the upgrade. Afterwards:
 
 1. `pnpm idl:build`, commit, and if the interface changed: `anchor idl upgrade --filepath idl/loot_king.json <PROGRAM_ID>` signed by the IDL authority, and copy the IDL to the frontend.
 2. `pnpm idl:check -- mainnet`.
@@ -62,7 +63,7 @@ The repository must be public and the commit pushed.
 
 ```bash
 RPC_URL=<rpc> pnpm verify -- mainnet check   # repo reachable, commit pushed, local hash == on-chain hash
-RPC_URL=<rpc> pnpm verify -- mainnet pda     # export PDA tx (uploader = Ledger), sign with Ledger
+RPC_URL=<rpc> pnpm verify -- mainnet pda     # export PDA tx (uploader = authority), sign with the authority signer
 RPC_URL=<rpc> pnpm verify -- mainnet remote  # submit OtterSec remote job
 RPC_URL=<rpc> pnpm verify -- mainnet status  # uploaded PDA + OtterSec status
 RPC_URL=<rpc> pnpm verify -- mainnet all     # check + pda + remote
@@ -76,16 +77,16 @@ RPC_URL=<rpc> pnpm verify -- mainnet all     # check + pda + remote
 RPC_URL=<rpc> pnpm metadata:security -- mainnet
 ```
 
-Writes `security.json` (with `source_revision` = `COMMIT`/`HEAD`) to the program's `security` metadata account (`91YKdKcBc916f58ttn7SjKedLpVZ4aw25VfUVfpQDAR7` on mainnet), signed by the Ledger.
+Writes `security.json` (with `source_revision` = `COMMIT`/`HEAD`) to the program's `security` metadata account (`91YKdKcBc916f58ttn7SjKedLpVZ4aw25VfUVfpQDAR7` on mainnet), signed by the authority signer.
 
 ## Signing arbitrary exported transactions
 
 ```bash
-TX_BASE64=<tx> RPC_URL=<rpc> pnpm ledger:send-tx -- mainnet
-TX_FILE=<one base64 tx per line> RPC_URL=<rpc> pnpm ledger:send-tx -- mainnet
+TX_BASE64=<tx> RPC_URL=<rpc> pnpm send-tx -- mainnet
+TX_FILE=<one base64 tx per line> RPC_URL=<rpc> pnpm send-tx -- mainnet
 ```
 
-The hot wallet co-signs when it is a required signer. The blockhash is refreshed before each Ledger prompt (`REFRESH_BLOCKHASH=false` to disable).
+The hot wallet co-signs when it is a required signer. The blockhash is refreshed before each signer prompt (`REFRESH_BLOCKHASH=false` to disable).
 
 ## Known tool issues
 

@@ -1,5 +1,5 @@
-// Accepts a pending game authority transfer with the Ledger.
-// The hot wallet pays the fee; the Ledger signs as the new authority.
+// Accepts a pending game authority transfer with the authority signer.
+// The hot wallet pays the fee; the authority signer signs as the new authority.
 //
 // Usage: [RPC_URL=<url>] pnpm game-authority:accept -- devnet|mainnet
 import * as anchor from "@coral-xyz/anchor";
@@ -14,7 +14,7 @@ import {
   readKeypair,
   run,
 } from "./lib/common";
-import { ledgerAddress, signAndSendWithLedger } from "./lib/ledger";
+import { signerAddress, signAndSendWithSigner } from "./lib/hw-signer";
 
 const { Transaction } = anchor.web3;
 
@@ -25,28 +25,30 @@ run(async () => {
   const hotWallet = readKeypair(hotWalletPath());
   const program = loadProgram(connection, id, hotWallet);
   const { gameState } = pdas(id);
-  const ledger = await ledgerAddress();
+  const signer = await signerAddress();
 
   const before = await fetchGameState(program, gameState);
   if (!before) throw new Error("Game state is not initialized.");
   console.log(`Current authority:  ${before.authority}`);
   console.log(`Pending authority:  ${before.pendingAuthority}`);
-  console.log(`Ledger:             ${ledger}`);
+  console.log(`Signer:             ${signer}`);
 
-  if (!before.pendingAuthority.equals(ledger)) {
-    throw new Error("Pending authority does not match the Ledger public key.");
+  if (!before.pendingAuthority.equals(signer)) {
+    throw new Error(
+      "Pending authority does not match the authority signer public key."
+    );
   }
 
   const instruction = await program.methods
     .acceptAuthority()
-    .accounts({ gameState, newAuthority: ledger } as any)
+    .accounts({ gameState, newAuthority: signer } as any)
     .instruction();
   const tx = new Transaction({
     feePayer: hotWallet.publicKey,
     ...(await connection.getLatestBlockhash("confirmed")),
   }).add(instruction);
 
-  await signAndSendWithLedger(connection, [tx], hotWallet);
+  await signAndSendWithSigner(connection, [tx], hotWallet);
 
   const after = await fetchGameState(program, gameState);
   console.log(`Authority after:    ${after.authority}`);

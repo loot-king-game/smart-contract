@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-# OtterSec verified build flow for a program whose upgrade authority is a Ledger.
+# OtterSec verified build flow for a program whose upgrade authority is a
+# hardware signer (uploader = AUTHORITY_PUBKEY).
 #
 # Usage: RPC_URL=<url> pnpm verify -- devnet|mainnet <step>
 #   check   build locally, compare hash with on-chain, check repo is public
 #           and the commit is pushed
-#   pda     export the verification PDA tx and sign it with the Ledger
+#   pda     export the verification PDA tx and sign it with the authority signer
 #   remote  submit the remote verification job to OtterSec (mainnet only)
 #   status  show the uploaded PDA and the remote verification status
 #   all     check + pda + remote
@@ -15,6 +16,7 @@ USAGE_EXTRA="check|pda|remote|status|all"
 parse_cluster "$@"
 STEP="${ARGS[0]:-}"
 COMMIT="${COMMIT:-$(git rev-parse HEAD)}"
+[[ "$STEP" == "check" ]] || require_var AUTHORITY_PUBKEY
 
 step_check() {
   echo "Repo:    $REPO_URL"
@@ -55,10 +57,10 @@ step_pda() {
   require_solana_verify
   local tx_file
   tx_file="$(mktemp -t loot-king-verify-pda)"
-  echo "Exporting verification PDA tx (uploader $LEDGER_PUBKEY)..."
+  echo "Exporting verification PDA tx (uploader $AUTHORITY_PUBKEY)..."
   "$SOLANA_VERIFY" export-pda-tx "$REPO_URL" \
     --program-id "$PROGRAM_ID" \
-    --uploader "$LEDGER_PUBKEY" \
+    --uploader "$AUTHORITY_PUBKEY" \
     --commit-hash "$COMMIT" \
     --library-name "$LIBRARY_NAME" \
     --base-image "$BASE_IMAGE" \
@@ -70,7 +72,7 @@ step_pda() {
     echo "export-pda-tx produced no transaction." >&2
     exit 1
   fi
-  TX_FILE="$tx_file" pnpm -s tsx scripts/ledger-send-tx.ts "$CLUSTER"
+  TX_FILE="$tx_file" pnpm -s tsx scripts/send-tx.ts "$CLUSTER"
   rm -f "$tx_file"
 }
 
@@ -82,7 +84,7 @@ step_remote() {
   require_solana_verify
   "$SOLANA_VERIFY" remote submit-job \
     --program-id "$PROGRAM_ID" \
-    --uploader "$LEDGER_PUBKEY" \
+    --uploader "$AUTHORITY_PUBKEY" \
     -u "$RPC"
 }
 
@@ -90,7 +92,7 @@ step_status() {
   require_solana_verify
   "$SOLANA_VERIFY" get-program-pda \
     --program-id "$PROGRAM_ID" \
-    --signer "$LEDGER_PUBKEY" \
+    --signer "$AUTHORITY_PUBKEY" \
     -u "$RPC" || true
   if [[ "$CLUSTER" == "mainnet" ]]; then
     curl -s "https://verify.osec.io/status/$PROGRAM_ID"
@@ -105,7 +107,7 @@ case "$STEP" in
   status) step_status ;;
   all)
     step_check
-    confirm "Upload verification PDA for commit $COMMIT with Ledger?" || exit 1
+    confirm "Upload verification PDA for commit $COMMIT with the authority signer?" || exit 1
     step_pda
     [[ "$CLUSTER" == "mainnet" ]] && step_remote
     ;;

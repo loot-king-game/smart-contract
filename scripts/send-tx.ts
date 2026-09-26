@@ -1,9 +1,9 @@
-// Signs exported transactions with the Ledger (and the hot wallet if it is a
+// Signs exported transactions with the authority signer (and the hot wallet if it is a
 // required signer), then sends them in order.
 //
 // Usage:
-//   TX_BASE64=<base64> pnpm ledger:send-tx -- devnet|mainnet
-//   TX_FILE=<file with one base64 tx per line> pnpm ledger:send-tx -- devnet|mainnet
+//   TX_BASE64=<base64> pnpm send-tx -- devnet|mainnet
+//   TX_FILE=<file with one base64 tx per line> pnpm send-tx -- devnet|mainnet
 import fs from "fs";
 import {
   connect,
@@ -12,7 +12,7 @@ import {
   readOptionalKeypair,
   run,
 } from "./lib/common";
-import { deserialize, signAndSendWithLedger } from "./lib/ledger";
+import { deserialize, signAndSendWithSigner } from "./lib/hw-signer";
 
 function readTransactions(): string[] {
   if (process.env.TX_BASE64) return [process.env.TX_BASE64.trim()];
@@ -29,11 +29,11 @@ function readTransactions(): string[] {
 }
 
 run(async () => {
-  const cluster = parseCluster("pnpm ledger:send-tx -- devnet|mainnet");
+  const cluster = parseCluster("pnpm send-tx -- devnet|mainnet");
   const txs = readTransactions().map((b64) =>
     deserialize(Buffer.from(b64, "base64"))
   );
-  await signAndSendWithLedger(
+  await signAndSendWithSigner(
     connect(cluster),
     txs,
     readOptionalKeypair(hotWalletPath())
